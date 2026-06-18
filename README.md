@@ -8,7 +8,7 @@ No API keys. No accounts. No data leaves your device.
 
 ## What is this?
 
-[Model Context Protocol (MCP)](https://modelcontextprotocol.io) lets AI assistants (Claude, Cursor, Windsurf, and others) use external tools. This package brings allio Tools' calculators, converters, developer tools, text utilities, and date/time tools directly into your AI agent — running entirely as a local process on your machine.
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open standard that lets code editors and chat applications connect to external tool servers. This package brings allio Tools' calculators, converters, developer tools, text utilities, and date/time tools directly into any MCP-compatible client — running entirely as a local process on your machine.
 
 > **Privacy first:** Every tool in this server computes results locally in Node.js. Nothing is sent to allio.tools or any third-party service. The only exceptions are the network tools (marked with 🌐), which make external calls by design — for example, a DNS lookup must contact a DNS server.
 
@@ -253,7 +253,7 @@ This MCP server was built with privacy as the primary design constraint.
 
 ## Using with your AI
 
-Once installed, just ask your AI agent naturally:
+Once installed, just ask naturally:
 
 - *"Calculate compound interest on $10,000 at 5% for 20 years, compounded monthly"*
 - *"Convert 180 lbs to kg"*

@@ -21,10 +21,8 @@
     "converter",
     "privacy",
     "offline",
-    "claude",
-    "cursor",
-    "windsurf",
-    "ai-tools"
+    "local",
+    "no-telemetry"
   ],
   "author": "Allio Tools <hello@allio.tools> (https://allio.tools)",
   "license": "MIT",
