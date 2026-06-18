@@ -1,0 +1,49 @@
+{
+  "name": "alliotools-mcp",
+  "version": "1.0.0",
+  "description": "Privacy-first MCP server for allio Tools — 176+ utilities that run entirely on your machine",
+  "main": "dist/index.js",
+  "bin": {
+    "alliotools-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "tools",
+    "utilities",
+    "calculator",
+    "converter",
+    "privacy",
+    "offline",
+    "claude",
+    "cursor",
+    "windsurf",
+    "ai-tools"
+  ],
+  "author": "Allio Tools <hello@allio.tools> (https://allio.tools)",
+  "license": "MIT",
+  "homepage": "https://allio.tools/mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DesignbyFahad/alliotools-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DesignbyFahad/alliotools-mcp/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
