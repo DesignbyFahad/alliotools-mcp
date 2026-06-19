@@ -23,6 +23,8 @@ import { developerTools, runDeveloper } from './tools/developer.js';
 import { textTools, runText } from './tools/text.js';
 import { datetimeTools, runDatetime } from './tools/datetime.js';
 import { networkTools, runNetwork } from './tools/network.js';
+import { healthTools, runHealth } from './tools/health.js';
+import { funTools, runFun } from './tools/fun.js';
 
 const ALL_TOOLS = [
   ...calculatorTools,
@@ -30,7 +32,9 @@ const ALL_TOOLS = [
   ...developerTools,
   ...textTools,
   ...datetimeTools,
-  ...networkTools
+  ...networkTools,
+  ...healthTools,
+  ...funTools
 ];
 
 const LOCAL_TOOLS = new Set([
@@ -38,7 +42,9 @@ const LOCAL_TOOLS = new Set([
   ...converterTools.map(t => t.name),
   ...developerTools.map(t => t.name),
   ...textTools.map(t => t.name),
-  ...datetimeTools.map(t => t.name)
+  ...datetimeTools.map(t => t.name),
+  ...healthTools.map(t => t.name),
+  ...funTools.map(t => t.name)
 ]);
 
 const NETWORK_TOOLS = new Set(networkTools.map(t => t.name));
@@ -46,7 +52,7 @@ const NETWORK_TOOLS = new Set(networkTools.map(t => t.name));
 const server = new Server(
   {
     name: 'alliotools-mcp',
-    version: '1.0.0'
+    version: '2.0.0'
   },
   {
     capabilities: { tools: {} }
@@ -72,6 +78,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = runDeveloper(name, args as Record<string, unknown>);
       } else if (textTools.some(t => t.name === name)) {
         result = runText(name, args as Record<string, unknown>);
+      } else if (healthTools.some(t => t.name === name)) {
+        result = runHealth(name, args as Record<string, unknown>);
+      } else if (funTools.some(t => t.name === name)) {
+        result = runFun(name, args as Record<string, unknown>);
       } else {
         result = runDatetime(name, args as Record<string, unknown>);
       }
@@ -97,7 +107,7 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // Startup message goes to stderr so it doesn't interfere with MCP stdio protocol
-  process.stderr.write('alliotools-mcp running — 176+ tools, zero data collection\n');
+  process.stderr.write('alliotools-mcp running — 94 tools, zero data collection\n');
 }
 
 main().catch(err => {

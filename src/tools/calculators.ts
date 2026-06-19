@@ -200,6 +200,110 @@ export const calculatorTools = [
       },
       required: ['age', 'gender', 'weight_kg', 'height_cm', 'activity_level']
     }
+  },
+  // ── New tools ──────────────────────────────────────────────────────────────
+  {
+    name: 'mortgage_calculator',
+    description: 'Calculate monthly mortgage payment (P&I + taxes + insurance = PITI), total interest paid, and a 15 vs 30-year comparison.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        home_price: { type: 'number', description: 'Total home purchase price' },
+        down_payment: { type: 'number', description: 'Down payment amount in dollars' },
+        annual_rate: { type: 'number', description: 'Annual mortgage interest rate as percentage (e.g. 6.5 for 6.5%)' },
+        term_years: { type: 'number', description: 'Loan term in years', default: 30 },
+        property_tax_annual: { type: 'number', description: 'Annual property tax in dollars (optional)' },
+        insurance_annual: { type: 'number', description: 'Annual homeowners insurance in dollars (optional)' }
+      },
+      required: ['home_price', 'down_payment', 'annual_rate']
+    }
+  },
+  {
+    name: 'investment_return_calculator',
+    description: 'Calculate ROI and CAGR from a known final value, or project future value from an expected return rate. Supports monthly contributions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        initial_investment: { type: 'number', description: 'Starting investment amount' },
+        years: { type: 'number', description: 'Investment period in years' },
+        final_value: { type: 'number', description: 'Known final value — provide this to calculate ROI and CAGR' },
+        annual_return_rate: { type: 'number', description: 'Expected annual return rate as percentage (e.g. 8 for 8%) — provide this to project future value' },
+        monthly_contribution: { type: 'number', description: 'Monthly contribution amount added each month', default: 0 }
+      },
+      required: ['initial_investment', 'years']
+    }
+  },
+  {
+    name: 'retirement_calculator',
+    description: 'Project retirement savings with compound growth and monthly contributions, adjusted for inflation. Shows 4% rule monthly income.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        current_age: { type: 'number', description: 'Your current age' },
+        retirement_age: { type: 'number', description: 'Age at which you plan to retire' },
+        current_savings: { type: 'number', description: 'Current retirement savings balance' },
+        monthly_contribution: { type: 'number', description: 'Monthly contribution to retirement savings' },
+        expected_return: { type: 'number', description: 'Expected annual nominal return rate as percentage', default: 7 },
+        inflation_rate: { type: 'number', description: 'Expected annual inflation rate as percentage', default: 2.5 }
+      },
+      required: ['current_age', 'retirement_age', 'current_savings', 'monthly_contribution']
+    }
+  },
+  {
+    name: 'electricity_cost_calculator',
+    description: 'Calculate the electricity cost of running any device — daily, weekly, monthly, and annual cost in kWh and dollars.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        watts: { type: 'number', description: 'Power consumption of the device in watts' },
+        hours_per_day: { type: 'number', description: 'Average hours the device runs per day' },
+        days: { type: 'number', description: 'Number of days to calculate cost for', default: 30 },
+        cost_per_kwh: { type: 'number', description: 'Electricity rate in dollars per kWh', default: 0.12 }
+      },
+      required: ['watts', 'hours_per_day']
+    }
+  },
+  {
+    name: 'sales_tax_calculator',
+    description: 'Add sales tax to a pre-tax price, or strip tax out of a tax-inclusive price to find the original amount.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        price: { type: 'number', description: 'The price to calculate tax on' },
+        tax_rate: { type: 'number', description: 'Sales tax rate as a percentage (e.g. 8.5 for 8.5%)' },
+        mode: { type: 'string', enum: ['add', 'remove'], description: '"add" = add tax to pre-tax price | "remove" = extract tax from tax-inclusive price', default: 'add' }
+      },
+      required: ['price', 'tax_rate']
+    }
+  },
+  {
+    name: 'fraction_calculator',
+    description: 'Add, subtract, multiply, or divide two fractions. Returns the result reduced to lowest terms, as a decimal, and as a mixed number.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        numerator1: { type: 'number', description: 'Numerator of the first fraction' },
+        denominator1: { type: 'number', description: 'Denominator of the first fraction' },
+        operation: { type: 'string', enum: ['add', 'subtract', 'multiply', 'divide'], description: 'Arithmetic operation to perform' },
+        numerator2: { type: 'number', description: 'Numerator of the second fraction' },
+        denominator2: { type: 'number', description: 'Denominator of the second fraction' }
+      },
+      required: ['numerator1', 'denominator1', 'operation', 'numerator2', 'denominator2']
+    }
+  },
+  {
+    name: 'speed_calculator',
+    description: 'Calculate speed, time, or distance from the other two values. Converts between km/miles and hours/minutes/seconds.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mode: { type: 'string', enum: ['speed', 'time', 'distance'], description: 'What to calculate: "speed" (needs distance + time) | "time" (needs distance + speed) | "distance" (needs speed + time)' },
+        distance_km: { type: 'number', description: 'Distance in kilometres' },
+        time_seconds: { type: 'number', description: 'Time in seconds' },
+        speed_kmh: { type: 'number', description: 'Speed in km/h' }
+      },
+      required: ['mode']
+    }
   }
 ];
 
@@ -220,6 +324,13 @@ export function runCalculator(name: string, args: Record<string, unknown>): stri
     case 'fuel_cost_calculator': return fuelCost(args);
     case 'inflation_calculator': return inflationCalculator(args);
     case 'calorie_calculator': return calorieCalculator(args);
+    case 'mortgage_calculator': return mortgageCalculator(args);
+    case 'investment_return_calculator': return investmentReturnCalculator(args);
+    case 'retirement_calculator': return retirementCalculator(args);
+    case 'electricity_cost_calculator': return electricityCostCalculator(args);
+    case 'sales_tax_calculator': return salesTaxCalculator(args);
+    case 'fraction_calculator': return fractionCalculator(args);
+    case 'speed_calculator': return speedCalculator(args);
     default: return 'Unknown tool';
   }
 }
@@ -590,4 +701,485 @@ function calorieCalculator(args: Record<string, unknown>): string {
     `Estimated macros (${goalCalories[goal].toFixed(0)} kcal):`,
     `Protein: ${(weight_kg * 2).toFixed(0)}g | Carbs: ${((goalCalories[goal] * 0.45) / 4).toFixed(0)}g | Fat: ${((goalCalories[goal] * 0.25) / 9).toFixed(0)}g`
   ].filter(Boolean).join('\n');
+}
+
+// ── New calculator implementations ────────────────────────────────────────────
+
+function fmt(n: number): string {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function mortgageCalculator(args: Record<string, unknown>): string {
+  const {
+    home_price,
+    down_payment,
+    annual_rate,
+    term_years = 30,
+    property_tax_annual,
+    insurance_annual
+  } = args as {
+    home_price: number;
+    down_payment: number;
+    annual_rate: number;
+    term_years?: number;
+    property_tax_annual?: number;
+    insurance_annual?: number;
+  };
+
+  const loanAmount = home_price - down_payment;
+  const downPct = (down_payment / home_price) * 100;
+  const monthlyRate = annual_rate / 100 / 12;
+  const n = term_years * 12;
+
+  // M = P × [r(1+r)^n] / [(1+r)^n - 1]
+  const calcPayment = (principal: number, months: number): number => {
+    if (monthlyRate === 0) return principal / months;
+    return principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+  };
+
+  const monthlyPI = calcPayment(loanAmount, n);
+  const totalPaid = monthlyPI * n;
+  const totalInterest = totalPaid - loanAmount;
+
+  const monthlyTax = property_tax_annual ? property_tax_annual / 12 : 0;
+  const monthlyIns = insurance_annual ? insurance_annual / 12 : 0;
+  const monthlyPITI = monthlyPI + monthlyTax + monthlyIns;
+
+  const lines: string[] = [
+    `Home price: $${fmt(home_price)}`,
+    `Down payment: $${fmt(down_payment)} (${downPct.toFixed(1)}%)`,
+    `Loan amount: $${fmt(loanAmount)}`,
+    `Interest rate: ${annual_rate}% | Term: ${term_years} years`,
+    ``,
+    `Monthly principal & interest: $${fmt(monthlyPI)}`,
+  ];
+
+  if (monthlyTax > 0) lines.push(`Monthly property tax: $${fmt(monthlyTax)}`);
+  if (monthlyIns > 0) lines.push(`Monthly insurance: $${fmt(monthlyIns)}`);
+  if (monthlyTax > 0 || monthlyIns > 0) lines.push(`Total monthly payment (PITI): $${fmt(monthlyPITI)}`);
+
+  lines.push(``, `Total paid over ${term_years} years: $${fmt(totalPaid)}`);
+  lines.push(`Total interest paid: $${fmt(totalInterest)}`);
+  lines.push(`Effective interest rate: ${((totalInterest / loanAmount) * 100).toFixed(1)}% of loan`);
+
+  // 15 vs 30 comparison only when term is 30
+  if (term_years === 30) {
+    const payment15 = calcPayment(loanAmount, 180);
+    const totalPaid15 = payment15 * 180;
+    const interest15 = totalPaid15 - loanAmount;
+    lines.push(``);
+    lines.push(`── 15 vs 30-year comparison ──`);
+    lines.push(`15-year monthly payment: $${fmt(payment15)} (+$${fmt(payment15 - monthlyPI)}/mo)`);
+    lines.push(`15-year total interest: $${fmt(interest15)}`);
+    lines.push(`30-year total interest: $${fmt(totalInterest)}`);
+    lines.push(`Interest saved going 15-year: $${fmt(totalInterest - interest15)}`);
+  }
+
+  return lines.join('\n');
+}
+
+function investmentReturnCalculator(args: Record<string, unknown>): string {
+  const {
+    initial_investment,
+    years,
+    final_value,
+    annual_return_rate,
+    monthly_contribution = 0
+  } = args as {
+    initial_investment: number;
+    years: number;
+    final_value?: number;
+    annual_return_rate?: number;
+    monthly_contribution?: number;
+  };
+
+  const pmt = monthly_contribution ?? 0;
+
+  if (final_value !== undefined) {
+    // Calculate ROI and CAGR from known final value
+    const totalInvested = initial_investment + pmt * years * 12;
+    const roi = ((final_value - totalInvested) / totalInvested) * 100;
+    const cagr = (Math.pow(final_value / initial_investment, 1 / years) - 1) * 100;
+    const doublingTime = 72 / cagr;
+
+    return [
+      `Initial investment: $${fmt(initial_investment)}`,
+      pmt > 0 ? `Monthly contributions: $${fmt(pmt)}` : null,
+      `Final value: $${fmt(final_value)}`,
+      `Period: ${years} years`,
+      ``,
+      `Total invested: $${fmt(totalInvested)}`,
+      `Total return: $${fmt(final_value - totalInvested)}`,
+      `ROI: ${roi.toFixed(2)}%`,
+      `CAGR: ${cagr.toFixed(2)}% per year`,
+      `Doubling time (Rule of 72): ${doublingTime.toFixed(1)} years`
+    ].filter(Boolean).join('\n');
+  }
+
+  if (annual_return_rate !== undefined) {
+    // Project future value
+    const r = annual_return_rate / 100;
+    const months = years * 12;
+    const monthlyRate = r / 12;
+
+    // FV of lump sum
+    let fv = initial_investment * Math.pow(1 + r, years);
+
+    // FV of monthly contributions: PMT × ((1+r)^n - 1) / r  (using monthly rate)
+    if (pmt > 0 && monthlyRate > 0) {
+      fv += pmt * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+    } else if (pmt > 0) {
+      fv += pmt * months;
+    }
+
+    const totalInvested = initial_investment + pmt * months;
+    const totalReturn = fv - totalInvested;
+    const roi = (totalReturn / totalInvested) * 100;
+    const cagr = (Math.pow(fv / initial_investment, 1 / years) - 1) * 100;
+    const doublingTime = annual_return_rate > 0 ? 72 / annual_return_rate : Infinity;
+
+    return [
+      `Initial investment: $${fmt(initial_investment)}`,
+      pmt > 0 ? `Monthly contributions: $${fmt(pmt)}` : null,
+      `Annual return rate: ${annual_return_rate}%`,
+      `Period: ${years} years`,
+      ``,
+      `Projected final value: $${fmt(fv)}`,
+      `Total invested: $${fmt(totalInvested)}`,
+      `Total return: $${fmt(totalReturn)}`,
+      `ROI: ${roi.toFixed(2)}%`,
+      `CAGR: ${cagr.toFixed(2)}% per year`,
+      `Doubling time (Rule of 72): ${isFinite(doublingTime) ? doublingTime.toFixed(1) + ' years' : 'N/A'}`
+    ].filter(Boolean).join('\n');
+  }
+
+  return 'Provide either final_value (to calculate ROI/CAGR) or annual_return_rate (to project future value).';
+}
+
+function retirementCalculator(args: Record<string, unknown>): string {
+  const {
+    current_age,
+    retirement_age,
+    current_savings,
+    monthly_contribution,
+    expected_return = 7,
+    inflation_rate = 2.5
+  } = args as {
+    current_age: number;
+    retirement_age: number;
+    current_savings: number;
+    monthly_contribution: number;
+    expected_return?: number;
+    inflation_rate?: number;
+  };
+
+  const yearsToRetirement = retirement_age - current_age;
+  if (yearsToRetirement <= 0) return 'Retirement age must be greater than current age.';
+
+  const months = yearsToRetirement * 12;
+  const nominalMonthlyRate = expected_return / 100 / 12;
+
+  // FV of current savings (lump sum)
+  const fvLump = current_savings * Math.pow(1 + expected_return / 100, yearsToRetirement);
+
+  // FV of monthly contributions
+  let fvContribs = 0;
+  if (nominalMonthlyRate > 0) {
+    fvContribs = monthly_contribution * ((Math.pow(1 + nominalMonthlyRate, months) - 1) / nominalMonthlyRate);
+  } else {
+    fvContribs = monthly_contribution * months;
+  }
+
+  const nominalTotal = fvLump + fvContribs;
+
+  // Real return adjustment
+  const realReturn = ((1 + expected_return / 100) / (1 + inflation_rate / 100) - 1) * 100;
+  const realMonthlyRate = realReturn / 100 / 12;
+
+  const fvLumpReal = current_savings * Math.pow(1 + realReturn / 100, yearsToRetirement);
+  let fvContribsReal = 0;
+  if (realMonthlyRate > 0) {
+    fvContribsReal = monthly_contribution * ((Math.pow(1 + realMonthlyRate, months) - 1) / realMonthlyRate);
+  } else {
+    fvContribsReal = monthly_contribution * months;
+  }
+  const inflationAdjustedTotal = fvLumpReal + fvContribsReal;
+
+  const totalContributions = current_savings + monthly_contribution * months;
+  const totalGrowth = nominalTotal - totalContributions;
+
+  // 4% rule: annual withdrawal = savings × 0.04; monthly = annual / 12
+  const annualIncome4pct = nominalTotal * 0.04;
+  const monthlyIncome4pct = annualIncome4pct / 12;
+
+  // Draw-down over 25 years at same nominal rate
+  const drawdownMonths = 25 * 12;
+  let monthlyDrawdown = 0;
+  if (nominalMonthlyRate > 0) {
+    monthlyDrawdown = nominalTotal * (nominalMonthlyRate * Math.pow(1 + nominalMonthlyRate, drawdownMonths)) /
+      (Math.pow(1 + nominalMonthlyRate, drawdownMonths) - 1);
+  } else {
+    monthlyDrawdown = nominalTotal / drawdownMonths;
+  }
+
+  return [
+    `Current age: ${current_age} | Retirement age: ${retirement_age}`,
+    `Years to retirement: ${yearsToRetirement}`,
+    `Current savings: $${fmt(current_savings)}`,
+    `Monthly contribution: $${fmt(monthly_contribution)}`,
+    `Expected return: ${expected_return}% nominal | Inflation: ${inflation_rate}%`,
+    `Real return: ${realReturn.toFixed(2)}%`,
+    ``,
+    `Projected savings at retirement (nominal): $${fmt(nominalTotal)}`,
+    `Inflation-adjusted value (today's dollars): $${fmt(inflationAdjustedTotal)}`,
+    ``,
+    `Total contributions: $${fmt(totalContributions)}`,
+    `Total growth: $${fmt(totalGrowth)}`,
+    ``,
+    `Retirement income (4% rule): $${fmt(monthlyIncome4pct)}/month ($${fmt(annualIncome4pct)}/year)`,
+    `Monthly income if drawn down over 25 years: $${fmt(monthlyDrawdown)}/month`
+  ].join('\n');
+}
+
+function electricityCostCalculator(args: Record<string, unknown>): string {
+  const {
+    watts,
+    hours_per_day,
+    days = 30,
+    cost_per_kwh = 0.12
+  } = args as {
+    watts: number;
+    hours_per_day: number;
+    days?: number;
+    cost_per_kwh?: number;
+  };
+
+  const dailyKwh = (watts * hours_per_day) / 1000;
+  const weeklyKwh = dailyKwh * 7;
+  const monthlyKwh = dailyKwh * 30;
+  const annualKwh = dailyKwh * 365;
+
+  const dailyCost = dailyKwh * cost_per_kwh;
+  const weeklyCost = weeklyKwh * cost_per_kwh;
+  const periodKwh = dailyKwh * days;
+  const periodCost = periodKwh * cost_per_kwh;
+  const annualCost = annualKwh * cost_per_kwh;
+  const costPerHour = (watts / 1000) * cost_per_kwh;
+
+  return [
+    `Device: ${watts}W running ${hours_per_day}h/day`,
+    `Rate: $${cost_per_kwh}/kWh`,
+    ``,
+    `Cost per hour: $${costPerHour.toFixed(4)}`,
+    ``,
+    `Daily:   ${dailyKwh.toFixed(3)} kWh  →  $${dailyCost.toFixed(4)}`,
+    `Weekly:  ${weeklyKwh.toFixed(3)} kWh  →  $${weeklyCost.toFixed(2)}`,
+    `Monthly (30d): ${monthlyKwh.toFixed(3)} kWh  →  $${(monthlyKwh * cost_per_kwh).toFixed(2)}`,
+    days !== 30 ? `Custom (${days}d): ${periodKwh.toFixed(3)} kWh  →  $${periodCost.toFixed(2)}` : null,
+    `Annual:  ${annualKwh.toFixed(1)} kWh  →  $${annualCost.toFixed(2)}`
+  ].filter(Boolean).join('\n');
+}
+
+function salesTaxCalculator(args: Record<string, unknown>): string {
+  const {
+    price,
+    tax_rate,
+    mode = 'add'
+  } = args as { price: number; tax_rate: number; mode?: string };
+
+  if (mode === 'add') {
+    const taxAmount = price * (tax_rate / 100);
+    const total = price + taxAmount;
+    return [
+      `Pre-tax price: $${fmt(price)}`,
+      `Tax rate: ${tax_rate}%`,
+      `Tax amount: $${fmt(taxAmount)}`,
+      `Total (with tax): $${fmt(total)}`
+    ].join('\n');
+  }
+
+  if (mode === 'remove') {
+    const preTax = price / (1 + tax_rate / 100);
+    const taxAmount = price - preTax;
+    const effectiveRate = (taxAmount / preTax) * 100;
+    return [
+      `Tax-inclusive price: $${fmt(price)}`,
+      `Tax rate applied: ${tax_rate}%`,
+      `Pre-tax amount: $${fmt(preTax)}`,
+      `Tax amount: $${fmt(taxAmount)}`,
+      `Effective tax rate on pre-tax: ${effectiveRate.toFixed(4)}%`
+    ].join('\n');
+  }
+
+  return 'Invalid mode. Use "add" or "remove".';
+}
+
+function gcd(a: number, b: number): number {
+  a = Math.abs(Math.round(a));
+  b = Math.abs(Math.round(b));
+  while (b !== 0) {
+    const t = b;
+    b = a % b;
+    a = t;
+  }
+  return a;
+}
+
+function fractionCalculator(args: Record<string, unknown>): string {
+  const {
+    numerator1,
+    denominator1,
+    operation,
+    numerator2,
+    denominator2
+  } = args as {
+    numerator1: number;
+    denominator1: number;
+    operation: string;
+    numerator2: number;
+    denominator2: number;
+  };
+
+  if (denominator1 === 0 || denominator2 === 0) return 'Denominator cannot be zero.';
+  if (operation === 'divide' && numerator2 === 0) return 'Cannot divide by zero fraction.';
+
+  let resNum: number;
+  let resDen: number;
+  let opSymbol: string;
+
+  switch (operation) {
+    case 'add':
+      resNum = numerator1 * denominator2 + numerator2 * denominator1;
+      resDen = denominator1 * denominator2;
+      opSymbol = '+';
+      break;
+    case 'subtract':
+      resNum = numerator1 * denominator2 - numerator2 * denominator1;
+      resDen = denominator1 * denominator2;
+      opSymbol = '−';
+      break;
+    case 'multiply':
+      resNum = numerator1 * numerator2;
+      resDen = denominator1 * denominator2;
+      opSymbol = '×';
+      break;
+    case 'divide':
+      resNum = numerator1 * denominator2;
+      resDen = denominator1 * numerator2;
+      opSymbol = '÷';
+      break;
+    default:
+      return 'Invalid operation. Use add, subtract, multiply, or divide.';
+  }
+
+  // Reduce to lowest terms
+  const sign = resDen < 0 ? -1 : 1;
+  resNum *= sign;
+  resDen *= sign;
+  const divisor = gcd(Math.abs(resNum), Math.abs(resDen));
+  const simplifiedNum = resNum / divisor;
+  const simplifiedDen = resDen / divisor;
+
+  const decimal = simplifiedNum / simplifiedDen;
+
+  // Mixed number form
+  let mixedStr = '';
+  if (Math.abs(simplifiedNum) > Math.abs(simplifiedDen) && simplifiedDen !== 1) {
+    const wholePart = Math.trunc(simplifiedNum / simplifiedDen);
+    const remainder = Math.abs(simplifiedNum % simplifiedDen);
+    if (remainder === 0) {
+      mixedStr = `${wholePart}`;
+    } else {
+      mixedStr = `${wholePart} ${remainder}/${simplifiedDen}`;
+    }
+  } else {
+    mixedStr = simplifiedDen === 1 ? `${simplifiedNum}` : `${simplifiedNum}/${simplifiedDen}`;
+  }
+
+  const fractionStr = simplifiedDen === 1 ? `${simplifiedNum}` : `${simplifiedNum}/${simplifiedDen}`;
+  const equation = `${numerator1}/${denominator1} ${opSymbol} ${numerator2}/${denominator2}`;
+
+  return [
+    `Equation: ${equation}`,
+    `Result (fraction): ${fractionStr}`,
+    `Result (decimal): ${decimal.toFixed(6).replace(/\.?0+$/, '')}`,
+    `Result (mixed number): ${mixedStr}`
+  ].join('\n');
+}
+
+function speedCalculator(args: Record<string, unknown>): string {
+  const { mode, distance_km, time_seconds, speed_kmh } = args as {
+    mode: string;
+    distance_km?: number;
+    time_seconds?: number;
+    speed_kmh?: number;
+  };
+
+  const KM_TO_MILES = 0.621371;
+
+  function formatTime(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.round(seconds % 60);
+    const parts: string[] = [];
+    if (h > 0) parts.push(`${h}h`);
+    if (m > 0) parts.push(`${m}m`);
+    if (s > 0 || parts.length === 0) parts.push(`${s}s`);
+    return parts.join(' ');
+  }
+
+  if (mode === 'speed') {
+    if (distance_km === undefined || time_seconds === undefined) {
+      return 'For mode "speed", provide distance_km and time_seconds.';
+    }
+    const speedKmh = distance_km / (time_seconds / 3600);
+    const speedMph = speedKmh * KM_TO_MILES;
+    const distMiles = distance_km * KM_TO_MILES;
+    return [
+      `Distance: ${distance_km} km (${distMiles.toFixed(2)} miles)`,
+      `Time: ${formatTime(time_seconds)} (${time_seconds.toLocaleString()} seconds)`,
+      ``,
+      `Speed: ${speedKmh.toFixed(2)} km/h`,
+      `Speed: ${speedMph.toFixed(2)} mph`,
+      `Speed: ${(speedKmh / 3.6).toFixed(2)} m/s`
+    ].join('\n');
+  }
+
+  if (mode === 'time') {
+    if (distance_km === undefined || speed_kmh === undefined) {
+      return 'For mode "time", provide distance_km and speed_kmh.';
+    }
+    const timeHours = distance_km / speed_kmh;
+    const timeSecs = timeHours * 3600;
+    const distMiles = distance_km * KM_TO_MILES;
+    const speedMph = speed_kmh * KM_TO_MILES;
+    return [
+      `Distance: ${distance_km} km (${distMiles.toFixed(2)} miles)`,
+      `Speed: ${speed_kmh} km/h (${speedMph.toFixed(2)} mph)`,
+      ``,
+      `Time: ${formatTime(timeSecs)}`,
+      `Time: ${timeHours.toFixed(4)} hours`,
+      `Time: ${(timeHours * 60).toFixed(2)} minutes`,
+      `Time: ${timeSecs.toFixed(0)} seconds`
+    ].join('\n');
+  }
+
+  if (mode === 'distance') {
+    if (speed_kmh === undefined || time_seconds === undefined) {
+      return 'For mode "distance", provide speed_kmh and time_seconds.';
+    }
+    const distKm = speed_kmh * (time_seconds / 3600);
+    const distMiles = distKm * KM_TO_MILES;
+    const speedMph = speed_kmh * KM_TO_MILES;
+    return [
+      `Speed: ${speed_kmh} km/h (${speedMph.toFixed(2)} mph)`,
+      `Time: ${formatTime(time_seconds)} (${time_seconds.toLocaleString()} seconds)`,
+      ``,
+      `Distance: ${distKm.toFixed(4)} km`,
+      `Distance: ${distMiles.toFixed(4)} miles`,
+      `Distance: ${(distKm * 1000).toFixed(1)} meters`
+    ].join('\n');
+  }
+
+  return 'Invalid mode. Use "speed", "time", or "distance".';
 }

@@ -64,16 +64,45 @@ export const datetimeTools = [
       },
       required: ['mode', 'time1', 'time2']
     }
+  },
+  {
+    name: 'countdown_timer',
+    description: 'Calculate how much time remains until a future date, or how long ago a past date was.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        target_date: { type: 'string', description: 'Target date in YYYY-MM-DD or "YYYY-MM-DD HH:MM" format' },
+        label: { type: 'string', description: 'Optional label for the event (e.g. "Christmas", "Project deadline")' }
+      },
+      required: ['target_date']
+    }
+  },
+  {
+    name: 'world_clock',
+    description: 'Show the current time across multiple timezones simultaneously.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        timezones: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of IANA timezone strings e.g. ["America/New_York", "Europe/London"]. Defaults to UTC, New York, London, Tokyo, Sydney.'
+        },
+        show_date: { type: 'boolean', description: 'Also show the date for each timezone (default false)', default: false }
+      }
+    }
   }
 ];
 
 export function runDatetime(name: string, args: Record<string, unknown>): string {
   switch (name) {
-    case 'date_calculator': return dateCalculator(args);
-    case 'time_zone_converter': return tzConverter(args);
+    case 'date_calculator':         return dateCalculator(args);
+    case 'time_zone_converter':     return tzConverter(args);
     case 'unix_timestamp_converter': return unixConverter(args);
-    case 'week_number_calculator': return weekNumber(args);
+    case 'week_number_calculator':  return weekNumber(args);
     case 'time_duration_calculator': return timeDuration(args);
+    case 'countdown_timer':         return countdownTimer(args);
+    case 'world_clock':             return worldClock(args);
     default: return 'Unknown tool';
   }
 }
@@ -285,4 +314,114 @@ function timeDuration(args: Record<string, unknown>): string {
   }
 
   return 'Invalid mode';
+}
+
+// ---------------------------------------------------------------------------
+// countdown_timer
+// ---------------------------------------------------------------------------
+function countdownTimer(args: Record<string, unknown>): string {
+  const { target_date, label } = args as { target_date: string; label?: string };
+
+  // Parse target — support "YYYY-MM-DD" and "YYYY-MM-DD HH:MM"
+  let target: Date;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(target_date.trim())) {
+    target = new Date(target_date.trim() + 'T00:00:00Z');
+  } else {
+    target = new Date(target_date.trim().replace(' ', 'T'));
+  }
+  if (isNaN(target.getTime())) return `Invalid date: "${target_date}"`;
+
+  const now      = new Date();
+  const diffMs   = target.getTime() - now.getTime();
+  const isFuture = diffMs >= 0;
+  const absMs    = Math.abs(diffMs);
+
+  const totalSeconds = Math.floor(absMs / 1000);
+  const seconds      = totalSeconds % 60;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const minutes      = totalMinutes % 60;
+  const totalHours   = Math.floor(totalMinutes / 60);
+  const hours        = totalHours % 24;
+  const totalDays    = Math.floor(totalHours / 24);
+  const weeks        = Math.floor(totalDays / 7);
+
+  // Percentage of year elapsed/remaining
+  const yearStart  = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+  const yearEnd    = new Date(Date.UTC(now.getUTCFullYear() + 1, 0, 1));
+  const yearLen    = yearEnd.getTime() - yearStart.getTime();
+  const yearPct    = Math.round(((now.getTime() - yearStart.getTime()) / yearLen) * 100);
+
+  const header = label
+    ? `${label}: ${target_date}`
+    : `Target: ${target_date}`;
+
+  const direction = isFuture ? 'Time remaining' : 'Time since';
+
+  return [
+    header,
+    `Now:    ${now.toUTCString()}`,
+    ``,
+    `${direction}:`,
+    `  ${totalDays.toLocaleString()} days, ${hours}h ${minutes}m ${seconds}s`,
+    `  (~${weeks} week${weeks !== 1 ? 's' : ''})`,
+    ``,
+    `Year progress: ${yearPct}% of ${now.getUTCFullYear()} has elapsed`
+  ].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// world_clock
+// ---------------------------------------------------------------------------
+function worldClock(args: Record<string, unknown>): string {
+  const tzArg    = args.timezones as string[] | undefined;
+  const showDate = (args.show_date as boolean) ?? false;
+
+  const timezones = (Array.isArray(tzArg) && tzArg.length > 0)
+    ? tzArg
+    : ['UTC', 'America/New_York', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney'];
+
+  const now = new Date();
+
+  // Find longest timezone label for alignment
+  const pad = Math.max(...timezones.map(tz => tz.length));
+
+  const lines: string[] = [
+    `Current time across ${timezones.length} timezone${timezones.length !== 1 ? 's' : ''}`,
+    `(as of ${now.toUTCString()})`,
+    ``
+  ];
+
+  for (const tz of timezones) {
+    try {
+      const timeOpts: Intl.DateTimeFormatOptions = {
+        timeZone: tz,
+        hour:   '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZoneName: 'shortOffset'
+      };
+      const dateOpts: Intl.DateTimeFormatOptions = {
+        timeZone: tz,
+        weekday: 'short',
+        year:    'numeric',
+        month:   'short',
+        day:     'numeric'
+      };
+
+      const timeStr = now.toLocaleString('en-GB', timeOpts);
+      const label   = tz.padEnd(pad);
+
+      if (showDate) {
+        const dateStr = now.toLocaleString('en-GB', dateOpts);
+        lines.push(`${label}  ${timeStr}  (${dateStr})`);
+      } else {
+        lines.push(`${label}  ${timeStr}`);
+      }
+    } catch {
+      lines.push(`${tz.padEnd(pad)}  [Invalid timezone]`);
+    }
+  }
+
+  return lines.join('\n');
 }

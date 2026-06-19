@@ -1,17 +1,24 @@
 {
   "name": "alliotools-mcp",
-  "version": "1.0.0",
-  "description": "Privacy-first MCP server for allio Tools — 176+ utilities that run entirely on your machine",
+  "version": "2.0.0",
+  "description": "Privacy-first MCP server for allio Tools — 94 utilities that run entirely on your machine. Calculators, converters, developer tools, text, date/time, health, and fun tools.",
   "main": "dist/index.js",
   "bin": {
     "alliotools-mcp": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/update-tool-count.js",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "prepare": "npm run build"
   },
+  "files": [
+    "dist",
+    "scripts/update-tool-count.js",
+    "tools-manifest.json",
+    "LICENSE",
+    "README.md"
+  ],
   "keywords": [
     "mcp",
     "model-context-protocol",
@@ -43,5 +50,16 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "toolCount": 94,
+  "toolBreakdown": {
+    "calculators": 22,
+    "converters": 5,
+    "developer": 21,
+    "text": 17,
+    "datetime": 7,
+    "network": 5,
+    "health": 9,
+    "fun": 8
   }
 }

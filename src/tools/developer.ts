@@ -155,6 +155,119 @@ export const developerTools = [
       },
       required: ['expression']
     }
+  },
+  {
+    name: 'json_to_yaml',
+    description: 'Convert a JSON string to YAML format.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        json: { type: 'string', description: 'JSON string to convert to YAML' }
+      },
+      required: ['json']
+    }
+  },
+  {
+    name: 'yaml_to_json',
+    description: 'Convert a basic YAML document to JSON format.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        yaml: { type: 'string', description: 'YAML string to convert to JSON' }
+      },
+      required: ['yaml']
+    }
+  },
+  {
+    name: 'xml_formatter',
+    description: 'Format or minify XML. Pretty-prints with configurable indent or strips all whitespace between tags.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        xml: { type: 'string', description: 'XML string to format or minify' },
+        indent: { type: 'number', description: 'Number of spaces for indentation (format mode)', default: 2 },
+        mode: { type: 'string', enum: ['format', 'minify'], description: 'format = pretty-print | minify = compact', default: 'format' }
+      },
+      required: ['xml']
+    }
+  },
+  {
+    name: 'meta_tag_generator',
+    description: 'Generate HTML meta tags including Open Graph and Twitter Card tags ready to paste into <head>.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Page title' },
+        description: { type: 'string', description: 'Page description (keep under 160 characters)' },
+        url: { type: 'string', description: 'Canonical page URL (optional)' },
+        image: { type: 'string', description: 'Open Graph / Twitter image URL (optional)' },
+        type: { type: 'string', description: 'Open Graph type (website, article, product, etc.)', default: 'website' },
+        twitter_handle: { type: 'string', description: 'Twitter/X handle, e.g. @mysite (optional)' }
+      },
+      required: ['title', 'description']
+    }
+  },
+  {
+    name: 'robots_txt_generator',
+    description: 'Generate a robots.txt file from crawl rules for one or more user agents.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rules: {
+          type: 'array',
+          description: 'Array of crawl rule objects',
+          items: {
+            type: 'object',
+            properties: {
+              user_agent: { type: 'string', description: 'User agent name (use * for all)' },
+              allow: { type: 'array', items: { type: 'string' }, description: 'Paths to allow' },
+              disallow: { type: 'array', items: { type: 'string' }, description: 'Paths to disallow' }
+            },
+            required: ['user_agent']
+          }
+        },
+        sitemap: { type: 'string', description: 'Full URL to sitemap.xml (optional)' }
+      },
+      required: ['rules']
+    }
+  },
+  {
+    name: 'email_validator',
+    description: 'Validate an email address format and identify specific issues. No network calls — format check only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Email address to validate' }
+      },
+      required: ['email']
+    }
+  },
+  {
+    name: 'subnet_calculator',
+    description: 'Calculate subnet details from a CIDR notation: network/broadcast addresses, usable host range, masks, and binary representation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cidr: { type: 'string', description: 'CIDR notation, e.g. "192.168.1.0/24" or "10.0.0.0/8"' }
+      },
+      required: ['cidr']
+    }
+  },
+  {
+    name: 'utm_builder',
+    description: 'Build a UTM-tagged URL for campaign tracking. Appends utm_source, utm_medium, utm_campaign, and optionally utm_term and utm_content.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        base_url: { type: 'string', description: 'The destination URL without UTM parameters' },
+        source: { type: 'string', description: 'Traffic source (e.g. google, newsletter, twitter)' },
+        medium: { type: 'string', description: 'Marketing medium (e.g. cpc, email, social)' },
+        campaign: { type: 'string', description: 'Campaign name (e.g. spring_sale, product_launch)' },
+        term: { type: 'string', description: 'Paid keyword term (optional)' },
+        content: { type: 'string', description: 'Ad content identifier for A/B testing (optional)' }
+      },
+      required: ['base_url', 'source', 'medium', 'campaign']
+    }
   }
 ];
 
@@ -173,6 +286,14 @@ export function runDeveloper(name: string, args: Record<string, unknown>): strin
     case 'text_minifier': return textMinifier(args);
     case 'hex_rgb_converter': return hexRgbConverter(args);
     case 'cron_parser': return cronParser(args);
+    case 'json_to_yaml': return jsonToYaml(args);
+    case 'yaml_to_json': return yamlToJson(args);
+    case 'xml_formatter': return xmlFormatter(args);
+    case 'meta_tag_generator': return metaTagGenerator(args);
+    case 'robots_txt_generator': return robotsTxtGenerator(args);
+    case 'email_validator': return emailValidator(args);
+    case 'subnet_calculator': return subnetCalculator(args);
+    case 'utm_builder': return utmBuilder(args);
     default: return 'Unknown tool';
   }
 }
@@ -519,4 +640,477 @@ function matchesCron(d: Date, min: string, hour: string, dom: string, month: str
   return match(min,d.getUTCMinutes(),59) && match(hour,d.getUTCHours(),23) &&
     match(dom,d.getUTCDate(),31) && match(month,d.getUTCMonth()+1,12) &&
     match(dow,d.getUTCDay(),6);
+}
+
+// ─── NEW TOOLS ───────────────────────────────────────────────────────────────
+
+function yamlNeedsQuotes(s: string): boolean {
+  // Quote if contains special YAML characters or looks like another type
+  if (s === '') return true;
+  if (/^(true|false|null|yes|no|on|off)$/i.test(s)) return true;
+  if (/^-?\d/.test(s) && !isNaN(Number(s))) return true;
+  if (/[:#{}\[\],&*?|\-<>=!%@`]/.test(s)) return true;
+  if (/^\s|\s$/.test(s)) return true;
+  return false;
+}
+
+function valueToYaml(value: unknown, indent: number): string {
+  const pad = ' '.repeat(indent);
+
+  if (value === null) return 'null';
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') return String(value);
+
+  if (typeof value === 'string') {
+    if (yamlNeedsQuotes(value)) {
+      return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+    }
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]';
+    return '\n' + value.map(item => {
+      const rendered = valueToYaml(item, indent + 2);
+      if (rendered.startsWith('\n')) {
+        // nested object/array
+        return `${pad}- ${rendered.trimStart()}`;
+      }
+      return `${pad}- ${rendered}`;
+    }).join('\n');
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return '{}';
+    return '\n' + keys.map(key => {
+      const rendered = valueToYaml(obj[key], indent + 2);
+      if (rendered.startsWith('\n')) {
+        return `${pad}${key}:${rendered}`;
+      }
+      return `${pad}${key}: ${rendered}`;
+    }).join('\n');
+  }
+
+  return String(value);
+}
+
+function jsonToYaml(args: Record<string, unknown>): string {
+  const { json } = args as { json: string };
+  try {
+    const parsed = JSON.parse(json);
+    if (Array.isArray(parsed)) {
+      const lines = parsed.map(item => {
+        const rendered = valueToYaml(item, 2);
+        if (rendered.startsWith('\n')) {
+          return `- ${rendered.trimStart()}`;
+        }
+        return `- ${rendered}`;
+      });
+      return lines.join('\n');
+    }
+    if (typeof parsed === 'object' && parsed !== null) {
+      const obj = parsed as Record<string, unknown>;
+      const lines = Object.keys(obj).map(key => {
+        const rendered = valueToYaml(obj[key], 2);
+        if (rendered.startsWith('\n')) {
+          return `${key}:${rendered}`;
+        }
+        return `${key}: ${rendered}`;
+      });
+      return lines.join('\n');
+    }
+    // Scalar root
+    return valueToYaml(parsed, 0);
+  } catch (e) {
+    return `Error: Invalid JSON — ${(e as Error).message}`;
+  }
+}
+
+function parseYamlValue(raw: string): unknown {
+  const s = raw.trim();
+  if (s === 'null' || s === '~') return null;
+  if (s === 'true' || s === 'yes' || s === 'on') return true;
+  if (s === 'false' || s === 'no' || s === 'off') return false;
+  if (s !== '' && !isNaN(Number(s))) return Number(s);
+  // Quoted string
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    return s.slice(1, -1);
+  }
+  return s;
+}
+
+function yamlToJson(args: Record<string, unknown>): string {
+  const { yaml } = args as { yaml: string };
+  try {
+    const lines = yaml.split('\n');
+    // Remove document separator and trailing comments
+    const cleaned = lines.filter(l => l.trim() !== '---' && l.trim() !== '...' && !l.trim().startsWith('#'));
+
+    // Build indented structure
+    type YamlNode = Record<string, unknown> | unknown[];
+    const stack: Array<{ indent: number; obj: YamlNode; key?: string }> = [];
+    let root: unknown = undefined;
+
+    const getParent = (): YamlNode | undefined => stack.length > 0 ? stack[stack.length - 1].obj : undefined;
+
+    const assignToParent = (parent: YamlNode | undefined, key: string | undefined, value: unknown) => {
+      if (!parent) {
+        root = value;
+      } else if (Array.isArray(parent)) {
+        parent.push(value);
+      } else if (key !== undefined) {
+        (parent as Record<string, unknown>)[key] = value;
+      }
+    };
+
+    for (const rawLine of cleaned) {
+      if (rawLine.trim() === '') continue;
+
+      const indent = rawLine.search(/\S/);
+      const line = rawLine.trim();
+
+      // Pop stack to current indent level
+      while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+        stack.pop();
+      }
+
+      const parent = getParent();
+
+      if (line.startsWith('- ')) {
+        // Array item
+        const itemRaw = line.slice(2).trim();
+        if (!Array.isArray(parent)) {
+          // Need to create array
+          const arr: unknown[] = [];
+          if (stack.length > 0) {
+            const top = stack[stack.length - 1];
+            if (!Array.isArray(top.obj) && top.key !== undefined) {
+              (top.obj as Record<string, unknown>)[top.key] = arr;
+            }
+          } else {
+            root = arr;
+          }
+          stack.push({ indent, obj: arr });
+        }
+        const arrParent = getParent() as unknown[];
+        if (itemRaw.includes(':')) {
+          const colonIdx = itemRaw.indexOf(':');
+          const subKey = itemRaw.slice(0, colonIdx).trim();
+          const subVal = itemRaw.slice(colonIdx + 1).trim();
+          const obj: Record<string, unknown> = {};
+          if (subVal !== '') obj[subKey] = parseYamlValue(subVal);
+          else obj[subKey] = null;
+          arrParent.push(obj);
+          stack.push({ indent: indent + 2, obj, key: subKey });
+        } else {
+          arrParent.push(parseYamlValue(itemRaw));
+        }
+      } else if (line.includes(':')) {
+        const colonIdx = line.indexOf(':');
+        const key = line.slice(0, colonIdx).trim();
+        const valRaw = line.slice(colonIdx + 1).trim();
+
+        if (valRaw === '' || valRaw === '|' || valRaw === '>') {
+          // Nested object ahead
+          const obj: Record<string, unknown> = {};
+          assignToParent(parent, stack.length > 0 ? stack[stack.length - 1].key : undefined, undefined);
+          if (parent && !Array.isArray(parent)) {
+            (parent as Record<string, unknown>)[key] = obj;
+          } else if (!parent) {
+            if (root === undefined) root = {};
+            (root as Record<string, unknown>)[key] = obj;
+          } else {
+            // array parent — shouldn't normally happen here
+          }
+          if (root === undefined) root = !Array.isArray(parent) && parent ? parent : obj;
+          stack.push({ indent, obj: (parent && !Array.isArray(parent) ? parent : (root as Record<string, unknown>)) as YamlNode, key });
+          // Push the new nested object
+          stack.push({ indent: indent + 2, obj, key });
+        } else {
+          const value = parseYamlValue(valRaw);
+          if (!parent) {
+            if (root === undefined) root = {};
+            (root as Record<string, unknown>)[key] = value;
+            stack.push({ indent, obj: root as YamlNode, key });
+          } else if (!Array.isArray(parent)) {
+            (parent as Record<string, unknown>)[key] = value;
+            stack.push({ indent, obj: parent, key });
+          }
+        }
+      }
+    }
+
+    if (root === undefined) root = {};
+    return JSON.stringify(root, null, 2);
+  } catch (e) {
+    return `Error parsing YAML: ${(e as Error).message}`;
+  }
+}
+
+function xmlFormatter(args: Record<string, unknown>): string {
+  const { xml, indent = 2, mode = 'format' } = args as { xml: string; indent?: number; mode?: string };
+
+  if (mode === 'minify') {
+    const minified = xml
+      .replace(/>\s+</g, '><')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return minified;
+  }
+
+  // Format mode: tokenize and re-indent
+  const indentStr = ' '.repeat(indent as number);
+  const tokens: string[] = [];
+  const tokenRe = /(<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\/[^>]+>|<[^>]+\/>|<[^>]+>|[^<]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = tokenRe.exec(xml)) !== null) {
+    const tok = m[0].trim();
+    if (tok) tokens.push(tok);
+  }
+
+  let level = 0;
+  const output: string[] = [];
+
+  for (const tok of tokens) {
+    if (tok.startsWith('</')) {
+      // Closing tag
+      level = Math.max(0, level - 1);
+      output.push(indentStr.repeat(level) + tok);
+    } else if (tok.startsWith('<?') || tok.startsWith('<!--') || tok.startsWith('<![CDATA[')) {
+      // Declaration / comment / CDATA
+      output.push(indentStr.repeat(level) + tok);
+    } else if (tok.startsWith('<') && tok.endsWith('/>')) {
+      // Self-closing tag
+      output.push(indentStr.repeat(level) + tok);
+    } else if (tok.startsWith('<')) {
+      // Opening tag
+      output.push(indentStr.repeat(level) + tok);
+      level++;
+    } else {
+      // Text content
+      output.push(indentStr.repeat(level) + tok);
+    }
+  }
+
+  return output.join('\n');
+}
+
+function metaTagGenerator(args: Record<string, unknown>): string {
+  const { title, description, url, image, type = 'website', twitter_handle } =
+    args as { title: string; description: string; url?: string; image?: string; type?: string; twitter_handle?: string };
+
+  const lines: string[] = ['<!-- Basic Meta Tags -->'];
+  lines.push(`<meta charset="UTF-8">`);
+  lines.push(`<meta name="viewport" content="width=device-width, initial-scale=1.0">`);
+  lines.push(`<title>${title}</title>`);
+  lines.push(`<meta name="description" content="${description}">`);
+  if (url) lines.push(`<link rel="canonical" href="${url}">`);
+
+  lines.push('');
+  lines.push('<!-- Open Graph Tags -->');
+  lines.push(`<meta property="og:title" content="${title}">`);
+  lines.push(`<meta property="og:description" content="${description}">`);
+  lines.push(`<meta property="og:type" content="${type}">`);
+  if (url) lines.push(`<meta property="og:url" content="${url}">`);
+  if (image) lines.push(`<meta property="og:image" content="${image}">`);
+
+  lines.push('');
+  lines.push('<!-- Twitter Card Tags -->');
+  lines.push(`<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}">`);
+  lines.push(`<meta name="twitter:title" content="${title}">`);
+  lines.push(`<meta name="twitter:description" content="${description}">`);
+  if (image) lines.push(`<meta name="twitter:image" content="${image}">`);
+  if (twitter_handle) {
+    const handle = (twitter_handle as string).startsWith('@') ? twitter_handle : `@${twitter_handle}`;
+    lines.push(`<meta name="twitter:site" content="${handle}">`);
+  }
+
+  return lines.join('\n');
+}
+
+function robotsTxtGenerator(args: Record<string, unknown>): string {
+  const { rules, sitemap } = args as {
+    rules: Array<{ user_agent: string; allow?: string[]; disallow?: string[] }>;
+    sitemap?: string;
+  };
+
+  const lines: string[] = [];
+
+  for (const rule of rules) {
+    lines.push(`User-agent: ${rule.user_agent}`);
+    if (rule.allow && rule.allow.length > 0) {
+      for (const path of rule.allow) {
+        lines.push(`Allow: ${path}`);
+      }
+    }
+    if (rule.disallow && rule.disallow.length > 0) {
+      for (const path of rule.disallow) {
+        lines.push(`Disallow: ${path}`);
+      }
+    } else if (!rule.allow || rule.allow.length === 0) {
+      // Default: no disallow means allow all
+      lines.push(`Disallow:`);
+    }
+    lines.push('');
+  }
+
+  if (sitemap) {
+    lines.push(`Sitemap: ${sitemap}`);
+  }
+
+  return lines.join('\n').trimEnd();
+}
+
+function emailValidator(args: Record<string, unknown>): string {
+  const { email } = args as { email: string };
+  const s = email.trim();
+
+  const issues: string[] = [];
+
+  // Count @ signs
+  const atCount = (s.match(/@/g) || []).length;
+  if (atCount === 0) issues.push('Missing @ symbol');
+  if (atCount > 1) issues.push('Multiple @ symbols');
+
+  if (atCount !== 1) {
+    return `Invalid: ${issues.join('; ')}\nInput: ${s}`;
+  }
+
+  const [local, domain] = s.split('@');
+
+  if (!local || local.length === 0) issues.push('Empty local part (before @)');
+  if (local.length > 64) issues.push(`Local part too long (${local.length} chars, max 64)`);
+  if (local.startsWith('.')) issues.push('Local part starts with a dot');
+  if (local.endsWith('.')) issues.push('Local part ends with a dot');
+  if (/\.\./.test(local)) issues.push('Consecutive dots in local part');
+
+  if (!domain || domain.length === 0) issues.push('Empty domain (after @)');
+  if (domain && !domain.includes('.')) issues.push('Domain has no dot (no TLD)');
+  if (domain && domain.startsWith('.')) issues.push('Domain starts with a dot');
+  if (domain && domain.endsWith('.')) issues.push('Domain ends with a dot');
+  if (domain && /\.\./.test(domain)) issues.push('Consecutive dots in domain');
+
+  // TLD length check
+  if (domain && domain.includes('.')) {
+    const tld = domain.split('.').pop() || '';
+    if (tld.length < 2) issues.push(`TLD "${tld}" too short (minimum 2 characters)`);
+    if (tld.length > 24) issues.push(`TLD "${tld}" suspiciously long`);
+    if (!/^[a-zA-Z]+$/.test(tld)) issues.push(`TLD "${tld}" contains non-letter characters`);
+  }
+
+  // General format check
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+  const formatValid = emailRegex.test(s);
+
+  if (!formatValid && issues.length === 0) {
+    issues.push('Does not match standard email format');
+  }
+
+  const tld = domain && domain.includes('.') ? domain.split('.').pop() : '';
+  const result = issues.length === 0 ? 'Valid' : 'Invalid';
+
+  const lines = [
+    `Result: ${result}`,
+    `Input: ${s}`,
+    `Local part: ${local || '(empty)'}`,
+    `Domain: ${domain || '(empty)'}`,
+    `TLD: ${tld || '(none)'}`,
+  ];
+
+  if (issues.length > 0) {
+    lines.push('');
+    lines.push('Issues:');
+    issues.forEach(issue => lines.push(`  - ${issue}`));
+  }
+
+  return lines.join('\n');
+}
+
+function subnetCalculator(args: Record<string, unknown>): string {
+  const { cidr } = args as { cidr: string };
+  const parts = cidr.trim().split('/');
+  if (parts.length !== 2) return 'Error: Use CIDR notation, e.g. "192.168.1.0/24"';
+
+  const ipParts = parts[0].split('.').map(Number);
+  const prefix = parseInt(parts[1]);
+
+  if (ipParts.length !== 4 || ipParts.some(p => isNaN(p) || p < 0 || p > 255)) {
+    return 'Error: Invalid IP address in CIDR notation';
+  }
+  if (isNaN(prefix) || prefix < 0 || prefix > 32) {
+    return 'Error: Prefix length must be 0–32';
+  }
+
+  const ipNum = (ipParts[0] << 24 | ipParts[1] << 16 | ipParts[2] << 8 | ipParts[3]) >>> 0;
+  const maskNum = prefix === 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) >>> 0;
+  const wildcardNum = (~maskNum) >>> 0;
+  const networkNum = (ipNum & maskNum) >>> 0;
+  const broadcastNum = (networkNum | wildcardNum) >>> 0;
+  const firstHost = prefix < 31 ? (networkNum + 1) >>> 0 : networkNum;
+  const lastHost = prefix < 31 ? (broadcastNum - 1) >>> 0 : broadcastNum;
+  const totalHosts = Math.pow(2, 32 - prefix);
+  const usableHosts = prefix < 31 ? totalHosts - 2 : totalHosts;
+
+  const numToIp = (n: number) => [
+    (n >>> 24) & 0xFF,
+    (n >>> 16) & 0xFF,
+    (n >>> 8) & 0xFF,
+    n & 0xFF
+  ].join('.');
+
+  const numToBin = (n: number) => [
+    ((n >>> 24) & 0xFF).toString(2).padStart(8, '0'),
+    ((n >>> 16) & 0xFF).toString(2).padStart(8, '0'),
+    ((n >>> 8) & 0xFF).toString(2).padStart(8, '0'),
+    (n & 0xFF).toString(2).padStart(8, '0')
+  ].join('.');
+
+  return [
+    `─── Subnet Details ───`,
+    `CIDR:              ${cidr}`,
+    `Network address:   ${numToIp(networkNum)}`,
+    `Broadcast address: ${numToIp(broadcastNum)}`,
+    `Subnet mask:       ${numToIp(maskNum)}`,
+    `Wildcard mask:     ${numToIp(wildcardNum)}`,
+    `First usable host: ${numToIp(firstHost)}`,
+    `Last usable host:  ${numToIp(lastHost)}`,
+    `Total hosts:       ${totalHosts.toLocaleString()}`,
+    `Usable hosts:      ${usableHosts.toLocaleString()}`,
+    `Prefix length:     /${prefix}`,
+    ``,
+    `─── Binary ───`,
+    `Network: ${numToBin(networkNum)}`,
+    `Mask:    ${numToBin(maskNum)}`
+  ].join('\n');
+}
+
+function utmBuilder(args: Record<string, unknown>): string {
+  const { base_url, source, medium, campaign, term, content } =
+    args as { base_url: string; source: string; medium: string; campaign: string; term?: string; content?: string };
+
+  const params: Array<[string, string]> = [
+    ['utm_source', source],
+    ['utm_medium', medium],
+    ['utm_campaign', campaign],
+  ];
+  if (term) params.push(['utm_term', term]);
+  if (content) params.push(['utm_content', content]);
+
+  const queryString = params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  const separator = (base_url as string).includes('?') ? '&' : '?';
+  const finalUrl = `${base_url}${separator}${queryString}`;
+
+  const lines = [
+    `UTM URL:`,
+    finalUrl,
+    ``,
+    `─── Parameter Breakdown ───`,
+  ];
+  params.forEach(([k, v]) => {
+    lines.push(`${k}: ${v}`);
+  });
+
+  return lines.join('\n');
 }
