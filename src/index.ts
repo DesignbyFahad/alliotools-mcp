@@ -17,6 +17,9 @@ import {
   McpError
 } from '@modelcontextprotocol/sdk/types.js';
 
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 import { calculatorTools, runCalculator } from './tools/calculators.js';
 import { converterTools, runConverter } from './tools/converters.js';
 import { developerTools, runDeveloper } from './tools/developer.js';
@@ -25,6 +28,11 @@ import { datetimeTools, runDatetime } from './tools/datetime.js';
 import { networkTools, runNetwork } from './tools/network.js';
 import { healthTools, runHealth } from './tools/health.js';
 import { funTools, runFun } from './tools/fun.js';
+import { primeUpdateCheck, takeBannerIfReady } from './update-checker.js';
+
+const PKG_VERSION: string = JSON.parse(
+  readFileSync(join(__dirname, '..', 'package.json'), 'utf8')
+).version;
 
 const ALL_TOOLS = [
   ...calculatorTools,
@@ -52,7 +60,7 @@ const NETWORK_TOOLS = new Set(networkTools.map(t => t.name));
 const server = new Server(
   {
     name: 'alliotools-mcp',
-    version: '2.0.0'
+    version: PKG_VERSION
   },
   {
     capabilities: { tools: {} }
@@ -91,6 +99,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
     }
 
+    const banner = takeBannerIfReady();
+    if (banner) result = `${banner}\n\n${result}`;
+
     return {
       content: [{ type: 'text', text: result }]
     };
@@ -106,8 +117,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  // Kicked off in the background — never awaited, never blocks a tool call.
+  // See update-checker.ts for exactly what this does and does not send.
+  primeUpdateCheck();
   // Startup message goes to stderr so it doesn't interfere with MCP stdio protocol
-  process.stderr.write('alliotools-mcp running — 94 tools, zero data collection\n');
+  process.stderr.write(`alliotools-mcp running — ${ALL_TOOLS.length} tools, zero data collection\n`);
 }
 
 main().catch(err => {

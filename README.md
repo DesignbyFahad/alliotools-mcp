@@ -12,6 +12,15 @@ No API keys. No accounts. No data leaves your device.
 
 > **Privacy first:** Every tool in this server computes results locally in Node.js. Nothing is sent to allio.tools or any third-party service. The only exceptions are the network tools (marked with 🌐), which make external calls by design — for example, a DNS lookup must contact a DNS server.
 
+### Update checks — what this server does and doesn't send
+
+This server checks at most once every 24 hours whether a newer version of `alliotools-mcp` is available, so you find out about new tools, improvements, and bug fixes without having to manually check npm. This check is completely separate from tool usage:
+
+- It's a single anonymous `GET` of a static, public JSON file ([`changelog.json`](./changelog.json)) hosted on this project's own GitHub repo — nothing about how you use the tools (which tools, what arguments, what results) is ever read or sent.
+- It never blocks or slows down a tool call — the check runs in the background, and if it hasn't finished (or the machine is offline) a tool just runs normally with no update notice.
+- If a newer version exists, a short notice is appended to the next tool result so you (or your AI assistant) see it inline — no popups, no separate process.
+- The only thing written locally is a small cache file at `~/.alliotools-mcp/update-check.json` (just a timestamp + the latest known version) so the check doesn't re-run on every single tool call.
+
 ---
 
 ## Tools included

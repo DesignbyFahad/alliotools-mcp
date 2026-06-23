@@ -1,0 +1,15 @@
+{
+  "latest": "2.0.0",
+  "versions": [
+    {
+      "version": "2.0.0",
+      "date": "2026-06-19",
+      "toolCount": 94,
+      "highlights": [
+        "Expanded from 54 to 94 tools — added Health (9 tools: body fat, ideal weight, water intake, sleep, macros, TDEE, running pace, ovulation, pregnancy) and Fun (8 tools: coin flip, dice, 8-ball, password generator, random name/number/team, shuffle) categories.",
+        "Extended Calculators (+7), Developer (+8), Text (+6), and Datetime (+2) tool sets."
+      ],
+      "fixes": []
+    }
+  ]
+}

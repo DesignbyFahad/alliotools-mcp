@@ -46,5 +46,27 @@ const manifest = {
 };
 fs.writeFileSync(path.join(root, 'tools-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 
+// Stub a changelog.json entry for this version if one doesn't exist yet — never
+// overwrites an existing entry, so highlights/fixes written by hand before
+// publishing are never clobbered by a re-build. This is what the MCP server's
+// update-checker (src/update-checker.ts) reads to tell users what's new.
+const changelogPath = path.join(root, 'changelog.json');
+const changelog = fs.existsSync(changelogPath)
+  ? JSON.parse(fs.readFileSync(changelogPath, 'utf8'))
+  : { latest: pkg.version, versions: [] };
+
+if (!changelog.versions.some(v => v.version === pkg.version)) {
+  changelog.versions.unshift({
+    version: pkg.version,
+    date: new Date().toISOString().slice(0, 10),
+    toolCount: total,
+    highlights: [],
+    fixes: []
+  });
+  console.log(`changelog.json: stubbed entry for v${pkg.version} — fill in "highlights"/"fixes" before publishing.`);
+}
+changelog.latest = pkg.version;
+fs.writeFileSync(changelogPath, JSON.stringify(changelog, null, 2) + '\n');
+
 console.log(`tool count: ${total} (package.json + tools-manifest.json updated)`);
 console.log(JSON.stringify(breakdown, null, 2));
