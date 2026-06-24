@@ -1,0 +1,58 @@
+name: Notify on npm Publish
+
+# npm publish happens manually from a developer machine, not from CI — so
+# this can't trigger on a "publish" event. Instead it triggers on every push
+# to master and checks two things before sending anything:
+#   1. Is this version already on npm? (so we never email before it's
+#      actually live for users to install)
+#   2. Have we already emailed for this exact version? (tracked via a git
+#      tag — so a push that doesn't change the version, or re-running this
+#      workflow, never sends a duplicate)
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to push the v<version> tag once notified
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history + tags, needed for the "already notified" check
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check version and notify if newly published
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          SES_FROM_EMAIL: ${{ secrets.SES_FROM_EMAIL }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Already notified for $TAG — skipping."
+            exit 0
+          fi
+
+          PUBLISHED=$(npm view alliotools-mcp version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" != "$VERSION" ]; then
+            echo "package.json is at $VERSION but npm's published version is '$PUBLISHED' — not live yet, skipping."
+            exit 0
+          fi
+
+          echo "v$VERSION is live on npm and not yet notified — sending email."
+          node scripts/send-version-email.js
+
+          git tag "$TAG"
+          git push origin "$TAG"
